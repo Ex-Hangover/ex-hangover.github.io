@@ -256,6 +256,14 @@
     { n: [0, 0, -1], u: [-1, 0, 0], v: [0, 1, 0], pips: [[-P, -P], [P, -P], [-P, 0], [P, 0], [-P, P], [P, P]] },
   ];
   const CAMERA = 5;
+  // Face outline as a rounded square in face coordinates (-1..1), corner radius 0.35.
+  const CORNER = 0.35;
+  const FACE_OUTLINE = [[1, 1], [-1, 1], [-1, -1], [1, -1]].flatMap(([sx, sy], q) =>
+    Array.from({ length: 5 }, (_, i) => {
+      const a = (q + i / 4) * Math.PI / 2;
+      return [sx * (1 - CORNER) + Math.cos(a) * CORNER, sy * (1 - CORNER) + Math.sin(a) * CORNER];
+    })
+  );
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const cssVar = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   const DIE_COLORS = { face: cssVar('--inset'), edge: cssVar('--gold-dark'), pip: cssVar('--gold') };
@@ -283,7 +291,7 @@
       .filter(f => f.facing > 0)
       .sort((a, b) => a.facing - b.facing)
       .forEach(f => {
-        polygon([[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([a, b]) => project(add(add(f.n, f.u, a), f.v, b))));
+        polygon(FACE_OUTLINE.map(([a, b]) => project(add(add(f.n, f.u, a), f.v, b))));
         ctx.fillStyle = DIE_COLORS.face;
         ctx.fill();
         ctx.fillStyle = `rgba(255,255,255,${0.1 * f.facing})`;
