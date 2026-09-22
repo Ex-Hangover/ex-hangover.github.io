@@ -19,14 +19,16 @@
   .header p { font-size: 13px; color: var(--muted); margin-top: 4px; }
   .status { text-align: center; font-size: 14px; color: var(--soft); margin-bottom: 1rem; min-height: 1.3em; }
   .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.5); }
-  .player-card { background: var(--inset); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .player-card { background: var(--inset); border: 1px solid var(--line); border-radius: 14px; padding: 1.1rem 1.25rem; margin-bottom: 12px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; font-family: system-ui, sans-serif; }
   .player-card:last-child { margin-bottom: 0; }
-  .avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--panel); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; color: var(--muted); flex-shrink: 0; }
-  .avatar.rolled { background: var(--accent); color: #eaf3de; border-color: #5a8a5e; }
+  .avatar { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(160deg, #253c20, #101f12); border: 2px solid var(--gold-dark); display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; color: var(--gold); flex-shrink: 0; }
+  .avatar.rolled { background: var(--accent); color: #eaf3de; border-color: var(--gold); }
   .player-info { flex: 1; min-width: 0; }
-  .player-name-static { font-size: 14px; font-weight: 500; color: var(--text); }
-  .player-result { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .player-name-static { font-size: 18px; font-weight: 700; color: var(--cream); }
+  .player-result { font-size: 14px; color: var(--muted); margin-top: 4px; display: flex; align-items: center; gap: 7px; }
+  .player-result::before { content: '•'; color: var(--muted); font-size: 10px; }
   .player-result.revealed { color: var(--soft); font-weight: 500; }
+  .player-result.revealed::before { color: var(--gold); }
   .roll-btn { padding: 7px 16px; min-height: 44px; border-radius: 8px; border: none; background: var(--accent); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; }
   .roll-btn:hover:not(:disabled) { background: var(--accent-hover); }
   .roll-btn:focus-visible, .copy-btn:focus-visible { outline: 2px solid var(--soft); outline-offset: 2px; }
