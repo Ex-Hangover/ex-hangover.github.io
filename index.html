@@ -104,7 +104,7 @@
 
   function firstLoadStatus(rolledCount) {
     const progress = rolledCount ? rolledCount + ' of 6 have rolled. ' : '';
-    if (!ME) return progress + 'View only. To roll, open your personal link from Karma.';
+    if (!ME) return progress + 'View only. To roll, open your personal link from Karma Y.';
     if (yearOf(ME) !== null) return progress + 'You rolled ' + yearOf(ME) + '.';
     return progress + 'Hi ' + ME + ', tap Roll when you are ready.';
   }
@@ -128,7 +128,7 @@
       const wasCollision = yearOf(ME) === null && NAMES.some(n => yearOf(n) === year);
       setStatus(wasCollision
         ? "That roll didn't count: someone rolled at the same moment. Tap Roll again."
-        : "This link can't roll. Ask Karma to resend your personal link.");
+        : "This link can't roll. Ask Karma Y to resend your personal link.");
       render();
       return;
     }
