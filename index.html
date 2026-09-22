@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Viber Year Draw</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; background: #fff; color: #111; }
+  .container { padding: 1.5rem 1rem; max-width: 480px; margin: 0 auto; }
+  .header { text-align: center; margin-bottom: 1.5rem; }
+  .header h2 { font-size: 20px; font-weight: 500; color: #111; }
+  .header p { font-size: 13px; color: #666; margin-top: 4px; }
+  .player-card { background: #fff; border: 0.5px solid #ddd; border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 12px; display: flex; align-items: center; gap: 12px; }
+  .avatar { width: 40px; height: 40px; border-radius: 50%; background: #f3f3f3; border: 0.5px solid #ccc; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; color: #666; flex-shrink: 0; }
+  .avatar.rolled { background: #EAF3DE; color: #27500A; border-color: #C0DD97; }
+  .player-info { flex: 1; }
+  .player-name-static { font-size: 14px; font-weight: 500; color: #111; }
+  .player-result { font-size: 13px; color: #666; margin-top: 2px; }
+  .player-result.revealed { color: #3B6D11; font-weight: 500; }
+  .roll-btn { padding: 7px 16px; border-radius: 8px; border: 0.5px solid #ccc; background: #fff; color: #111; font-size: 14px; cursor: pointer; white-space: nowrap; font-family: system-ui, sans-serif; }
+  .roll-btn:hover:not(:disabled) { background: #f3f3f3; }
+  .year-badge { padding: 0 12px; height: 36px; border-radius: 18px; background: #3B6D11; color: #EAF3DE; font-size: 16px; font-weight: 500; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .chat-log { background: #f8f8f8; border-radius: 12px; padding: 1rem; margin-top: 1.5rem; }
+  .chat-log-title { font-size: 12px; color: #888; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .log-entry { font-size: 13px; color: #111; padding: 5px 0; border-bottom: 0.5px solid #e5e5e5; }
+  .log-entry:last-child { border-bottom: none; }
+  .log-empty { font-size: 13px; color: #999; font-style: italic; }
+  .final-banner { background: #EAF3DE; border: 0.5px solid #C0DD97; border-radius: 12px; padding: 1rem 1.25rem; margin-top: 1rem; text-align: center; }
+  .final-banner p { font-size: 14px; color: #27500A; font-weight: 500; }
+  .final-list { margin-top: 8px; font-size: 13px; font-weight: 400; color: #27500A; line-height: 1.7; }
+  .reset-btn { margin: 12px 4px 0; padding: 8px 20px; border-radius: 8px; border: 0.5px solid #C0DD97; background: #EAF3DE; color: #27500A; font-size: 14px; cursor: pointer; font-family: system-ui, sans-serif; }
+  .reset-btn:hover { background: #C0DD97; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h2>Viber Year Draw</h2>
+    <p>6 players — 6 years (2026–2031) — one roll each</p>
+  </div>
+  <div id="players-container"></div>
+  <div class="chat-log">
+    <div class="chat-log-title">Roll log</div>
+    <div id="log-container"><p class="log-empty">Waiting for first roll...</p></div>
+  </div>
+  <div id="final-section" style="display:none"></div>
+</div>
+<script>
+  const NAMES = ['PB', 'Ashok', 'Karma Tashi', 'Tapa dai', 'Karma Y', 'Karma Wangdi'];
+  const START_YEAR = 2026;
+  const YEARS = NAMES.map((_, i) => START_YEAR + i);
+
+  const state = { players: [], available: [], log: [] };
+
+  function roll(playerId) {
+    const p = state.players[playerId];
+    if (p.rolled || state.available.length === 0) return;
+    const idx = Math.floor(Math.random() * state.available.length);
+    p.rolled = true;
+    p.year = state.available.splice(idx, 1)[0];
+    state.log.push(p.name + ' rolled → ' + p.year);
+    const autoAssigned = [];
+    if (state.available.length === 1) {
+      const lastPlayer = state.players.find(pl => !pl.rolled);
+      if (lastPlayer) {
+        lastPlayer.rolled = true;
+        lastPlayer.year = state.available.splice(0, 1)[0];
+        state.log.push(lastPlayer.name + ' → auto-assigned ' + lastPlayer.year);
+        autoAssigned.push(lastPlayer.id);
+      }
+    }
+    render(autoAssigned);
+  }
+
+  function reset() {
+    state.players = NAMES.map((name, i) => ({ id: i, name, rolled: false, year: null }));
+    state.available = [...YEARS];
+    state.log = [];
+    render([]);
+  }
+
+  function summaryLines() {
+    return [...state.players].sort((a, b) => a.year - b.year).map(p => p.year + ' — ' + p.name);
+  }
+
+  function copyResults(btn) {
+    const text = 'Year Draw results\n' + summaryLines().join('\n');
+    navigator.clipboard.writeText(text)
+      .then(() => { btn.textContent = 'Copied — paste in Viber'; })
+      .catch(() => { btn.textContent = 'Copy failed — select text above'; });
+  }
+
+  function render(animated) {
+    const container = document.getElementById('players-container');
+    container.innerHTML = '';
+    state.players.forEach(p => {
+      const card = document.createElement('div');
+      card.className = 'player-card';
+      const av = document.createElement('div');
+      av.className = 'avatar' + (p.rolled ? ' rolled' : '');
+      av.textContent = p.name[0].toUpperCase();
+      const info = document.createElement('div');
+      info.className = 'player-info';
+      const nm = document.createElement('div');
+      nm.className = 'player-name-static';
+      nm.textContent = p.name;
+      const res = document.createElement('div');
+      res.className = 'player-result' + (p.rolled ? ' revealed' : '');
+      res.textContent = !p.rolled ? 'Waiting to roll...' : animated.includes(p.id) ? 'Auto-assigned' : 'Rolled!';
+      info.append(nm, res);
+      card.append(av, info);
+      if (p.rolled) {
+        const badge = document.createElement('div');
+        badge.className = 'year-badge';
+        badge.textContent = p.year;
+        card.appendChild(badge);
+      } else {
+        const btn = document.createElement('button');
+        btn.className = 'roll-btn';
+        btn.textContent = 'Roll';
+        btn.onclick = () => roll(p.id);
+        card.appendChild(btn);
+      }
+      container.appendChild(card);
+    });
+
+    const logContainer = document.getElementById('log-container');
+    logContainer.innerHTML = state.log.length === 0
+      ? '<p class="log-empty">Waiting for first roll...</p>'
+      : state.log.map(entry => '<div class="log-entry">' + entry + '</div>').join('');
+
+    const finalSection = document.getElementById('final-section');
+    if (state.players.every(p => p.rolled)) {
+      finalSection.style.display = 'block';
+      finalSection.innerHTML =
+        '<div class="final-banner">' +
+        '<p>All years assigned!</p>' +
+        '<div class="final-list">' + summaryLines().join('<br>') + '</div>' +
+        '<button class="reset-btn" onclick="copyResults(this)">Copy results for Viber</button>' +
+        '<button class="reset-btn" onclick="reset()">Reset for new round</button>' +
+        '</div>';
+    } else {
+      finalSection.style.display = 'none';
+    }
+  }
+
+  reset();
+</script>
+</body>
+</html>
