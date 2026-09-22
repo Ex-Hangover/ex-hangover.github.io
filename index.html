@@ -33,6 +33,10 @@
   .roll-btn:focus-visible, .copy-btn:focus-visible { outline: 2px solid var(--soft); outline-offset: 2px; }
   .roll-btn:disabled { opacity: 0.4; cursor: not-allowed; }
   .year-badge { padding: 0 12px; height: 36px; border-radius: 18px; background: var(--accent); color: #eaf3de; font-size: 16px; font-weight: 500; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .dice-spin { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; perspective: 160px; }
+  .dice-spin svg { width: 22px; height: 22px; animation: dice-tumble 2.2s linear infinite; }
+  @keyframes dice-tumble { from { transform: rotateX(0deg) rotateY(0deg); } to { transform: rotateX(360deg) rotateY(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .dice-spin svg { animation: none; } }
   .chat-log { background: #242426; border: 1px solid #2f2f32; border-radius: 12px; padding: 1rem; margin-top: 1.5rem; }
   .chat-log-title { font-size: 12px; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
   .log-entry { font-size: 13px; color: var(--text); padding: 5px 0; border-bottom: 1px solid #2f2f32; }
@@ -189,6 +193,11 @@
       btn.disabled = isRolling || !isLoaded;
       btn.onclick = roll;
       card.appendChild(btn);
+    } else {
+      const dice = document.createElement('div');
+      dice.className = 'dice-spin';
+      dice.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--gold)"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8" cy="8" r="1.3" fill="currentColor" stroke="none"/><circle cx="16" cy="8" r="1.3" fill="currentColor" stroke="none"/><circle cx="8" cy="16" r="1.3" fill="currentColor" stroke="none"/><circle cx="16" cy="16" r="1.3" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/></svg>';
+      card.appendChild(dice);
     }
     return card;
   }
