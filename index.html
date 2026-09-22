@@ -33,18 +33,8 @@
   .roll-btn:focus-visible, .copy-btn:focus-visible { outline: 2px solid var(--soft); outline-offset: 2px; }
   .roll-btn:disabled { opacity: 0.4; cursor: not-allowed; }
   .year-badge { padding: 0 12px; height: 36px; border-radius: 18px; background: var(--accent); color: #eaf3de; font-size: 16px; font-weight: 500; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-  .dice-spin { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; perspective: 120px; }
-  .cube { position: relative; width: 20px; height: 20px; transform-style: preserve-3d; animation: cube-tumble 2.4s linear infinite; }
-  .cube .face { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); padding: 3px; box-sizing: border-box; background: var(--inset); border: 1.5px solid var(--gold-dark); border-radius: 4px; }
-  .cube .pip { width: 4px; height: 4px; margin: auto; border-radius: 50%; background: var(--gold); }
-  .cube .f1 { transform: rotateY(0deg) translateZ(10px); }
-  .cube .f2 { transform: rotateY(180deg) translateZ(10px); }
-  .cube .f3 { transform: rotateY(90deg) translateZ(10px); }
-  .cube .f4 { transform: rotateY(-90deg) translateZ(10px); }
-  .cube .f5 { transform: rotateX(90deg) translateZ(10px); }
-  .cube .f6 { transform: rotateX(-90deg) translateZ(10px); }
-  @keyframes cube-tumble { from { transform: rotateX(0deg) rotateY(0deg); } to { transform: rotateX(360deg) rotateY(360deg); } }
-  @media (prefers-reduced-motion: reduce) { .cube { animation: none; } }
+  /* 3D die is drawn on canvas: CSS preserve-3d corrupted Chrome's page paint and leaked seams in Brave. */
+  .dice { width: 40px; height: 40px; flex-shrink: 0; }
   .chat-log { background: #242426; border: 1px solid #2f2f32; border-radius: 12px; padding: 1rem; margin-top: 1.5rem; }
   .chat-log-title { font-size: 12px; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
   .log-entry { font-size: 13px; color: var(--text); padding: 5px 0; border-bottom: 1px solid #2f2f32; }
@@ -99,18 +89,6 @@
 </div>
 <script>
   const NAMES = ['PB', 'Ashok', 'Karma Tashi', 'Tapa dai', 'Karma Y', 'Karma Wangdi'];
-  // Standard die pip layouts, as (row,col) cells on a 3x3 grid, for the waiting-to-roll cube.
-  const PIP_CELLS = {
-    1: [[2, 2]],
-    2: [[1, 1], [3, 3]],
-    3: [[1, 1], [2, 2], [3, 3]],
-    4: [[1, 1], [1, 3], [3, 1], [3, 3]],
-    5: [[1, 1], [1, 3], [2, 2], [3, 1], [3, 3]],
-    6: [[1, 1], [1, 3], [2, 1], [2, 3], [3, 1], [3, 3]],
-  };
-  const PIPS = Object.fromEntries(Object.entries(PIP_CELLS).map(([n, cells]) =>
-    [n, cells.map(([r, c]) => `<span class="pip" style="grid-row:${r};grid-column:${c}"></span>`).join('')]
-  ));
   const START_YEAR = 2026;
   const YEARS = NAMES.map((_, i) => START_YEAR + i);
   // Shared draw: the database only accepts each name once and each year once,
@@ -214,9 +192,10 @@
       btn.onclick = roll;
       card.appendChild(btn);
     } else {
-      const dice = document.createElement('div');
-      dice.className = 'dice-spin';
-      dice.innerHTML = '<div class="cube">' + [1, 2, 3, 4, 5, 6].map(n => '<div class="face f' + n + '">' + PIPS[n] + '</div>').join('') + '</div>';
+      const dice = document.createElement('canvas');
+      dice.className = 'dice';
+      dice.dataset.phase = NAMES.indexOf(name);
+      dice.setAttribute('aria-hidden', 'true');
       card.appendChild(dice);
     }
     return card;
@@ -264,6 +243,73 @@
   $('copy').onclick = () => navigator.clipboard.writeText('Ex-Hangover year draw results\n' + summaryLines().join('\n'))
     .then(() => { $('note').textContent = 'Copied. Paste it in the Viber group.'; })
     .catch(() => { $('note').textContent = 'Copying is blocked here. Press and hold the list above to copy it.'; });
+
+  // 3D die for players still waiting: cube projected by hand onto a canvas.
+  // Each face: normal n, in-plane axes u/v, pips as (u,v) offsets.
+  const P = 0.5;
+  const FACES = [
+    { n: [0, 0, 1], u: [1, 0, 0], v: [0, 1, 0], pips: [[0, 0]] },
+    { n: [0, -1, 0], u: [1, 0, 0], v: [0, 0, 1], pips: [[-P, -P], [P, P]] },
+    { n: [1, 0, 0], u: [0, 0, -1], v: [0, 1, 0], pips: [[-P, -P], [0, 0], [P, P]] },
+    { n: [-1, 0, 0], u: [0, 0, 1], v: [0, 1, 0], pips: [[-P, -P], [P, -P], [-P, P], [P, P]] },
+    { n: [0, 1, 0], u: [1, 0, 0], v: [0, 0, -1], pips: [[-P, -P], [P, -P], [0, 0], [-P, P], [P, P]] },
+    { n: [0, 0, -1], u: [-1, 0, 0], v: [0, 1, 0], pips: [[-P, -P], [P, -P], [-P, 0], [P, 0], [-P, P], [P, P]] },
+  ];
+  const CAMERA = 5;
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  const cssVar = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const DIE_COLORS = { face: cssVar('--inset'), edge: cssVar('--gold-dark'), pip: cssVar('--gold') };
+
+  function rotate([x, y, z], ax, ay) {
+    const y1 = y * Math.cos(ax) - z * Math.sin(ax), z1 = y * Math.sin(ax) + z * Math.cos(ax);
+    return [x * Math.cos(ay) + z1 * Math.sin(ay), y1, -x * Math.sin(ay) + z1 * Math.cos(ay)];
+  }
+  const add = (a, b, k = 1) => a.map((c, i) => c + b[i] * k);
+
+  function drawDie(canvas, t) {
+    const size = canvas.clientWidth, dpr = window.devicePixelRatio || 1;
+    if (canvas.width !== size * dpr) { canvas.width = size * dpr; canvas.height = size * dpr; }
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, size, size);
+    const phase = Number(canvas.dataset.phase) * 0.9;
+    const ax = t * 0.0011 + phase, ay = t * 0.0017 + phase;
+    const scale = size * 0.26 * CAMERA;
+    const project = p => { const [x, y, z] = rotate(p, ax, ay); const k = scale / (CAMERA - z); return [size / 2 + x * k, size / 2 - y * k]; };
+    const polygon = pts => { ctx.beginPath(); pts.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.closePath(); };
+
+    FACES
+      .map(f => ({ ...f, facing: rotate(f.n, ax, ay)[2] }))
+      .filter(f => f.facing > 0)
+      .sort((a, b) => a.facing - b.facing)
+      .forEach(f => {
+        polygon([[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([a, b]) => project(add(add(f.n, f.u, a), f.v, b))));
+        ctx.fillStyle = DIE_COLORS.face;
+        ctx.fill();
+        ctx.fillStyle = `rgba(255,255,255,${0.1 * f.facing})`;
+        ctx.fill();
+        ctx.strokeStyle = DIE_COLORS.edge;
+        ctx.lineWidth = 1.4;
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+        ctx.fillStyle = DIE_COLORS.pip;
+        f.pips.forEach(([pu, pv]) => {
+          const center = add(add(f.n, f.u, pu * 1.1), f.v, pv * 1.1);
+          polygon(Array.from({ length: 10 }, (_, i) => {
+            const a = (i / 10) * Math.PI * 2;
+            return project(add(add(center, f.u, Math.cos(a) * 0.2), f.v, Math.sin(a) * 0.2));
+          }));
+          ctx.fill();
+        });
+      });
+  }
+
+  function animateDice(now) {
+    const t = reduceMotion.matches ? 600 : now;
+    document.querySelectorAll('canvas.dice').forEach(c => drawDie(c, t));
+    requestAnimationFrame(animateDice);
+  }
+  requestAnimationFrame(animateDice);
 
   render();
   refresh();
