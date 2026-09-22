@@ -1,0 +1,21 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "draw": {
+      ".read": true,
+      "years": {
+        "$year": {
+          ".write": "!data.exists() && $year.matches(/^20(2[6-9]|3[01])$/)",
+          ".validate": "newData.isString() && newData.val().matches(/^(PB|Ashok|Karma Tashi|Tapa dai|Karma Y|Karma Wangdi)$/) && newData.parent().parent().child('names').child(newData.val()).val() == $year"
+        }
+      },
+      "names": {
+        "$name": {
+          ".write": "!data.exists() && $name.matches(/^(PB|Ashok|Karma Tashi|Tapa dai|Karma Y|Karma Wangdi)$/)",
+          ".validate": "newData.isString() && newData.parent().parent().child('years').child(newData.val()).val() == $name"
+        }
+      }
+    }
+  }
+}
