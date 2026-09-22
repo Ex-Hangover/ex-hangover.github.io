@@ -8,6 +8,7 @@
   /* Toolbox dark palette (Toolbox_extension/Toolbox.py, body.dark) */
   :root { --page: #1c1c1e; --panel: #1e3320; --line: #2d4a30; --inset: #162a19; --text: #d4c9a8; --soft: #b8c9a8; --muted: #7a9e7e; --accent: #3a7d54; --accent-hover: #2e6644; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { overflow-x: hidden; }
   body { font-family: system-ui, sans-serif; background: var(--page); color: var(--text); }
   .container { padding: 1.5rem 1rem; max-width: 480px; margin: 0 auto; }
   .header { text-align: center; margin-bottom: 1.5rem; }
@@ -15,15 +16,15 @@
   .header p { font-size: 13px; color: var(--muted); margin-top: 4px; }
   .status { text-align: center; font-size: 14px; color: var(--soft); margin-bottom: 1rem; min-height: 1.3em; }
   .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.5); }
-  .player-card { background: var(--inset); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; }
+  .player-card { background: var(--inset); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .player-card:last-child { margin-bottom: 0; }
   .avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--panel); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; color: var(--muted); flex-shrink: 0; }
   .avatar.rolled { background: var(--accent); color: #eaf3de; border-color: #5a8a5e; }
-  .player-info { flex: 1; }
+  .player-info { flex: 1; min-width: 0; }
   .player-name-static { font-size: 14px; font-weight: 500; color: var(--text); }
   .player-result { font-size: 13px; color: var(--muted); margin-top: 2px; }
   .player-result.revealed { color: var(--soft); font-weight: 500; }
-  .roll-btn { padding: 7px 16px; border-radius: 8px; border: none; background: var(--accent); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; font-family: system-ui, sans-serif; }
+  .roll-btn { padding: 7px 16px; min-height: 44px; border-radius: 8px; border: none; background: var(--accent); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; font-family: system-ui, sans-serif; }
   .roll-btn:hover:not(:disabled) { background: var(--accent-hover); }
   .roll-btn:focus-visible, .copy-btn:focus-visible { outline: 2px solid var(--soft); outline-offset: 2px; }
   .roll-btn:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -36,9 +37,14 @@
   .final-banner { background: var(--panel); border: 1px solid #5a8a5e; border-radius: 12px; padding: 1rem 1.25rem; margin-top: 1rem; text-align: center; }
   .final-banner p { font-size: 14px; color: var(--text); font-weight: 500; }
   .final-list { margin-top: 8px; font-size: 13px; font-weight: 400; color: var(--soft); line-height: 1.7; }
-  .copy-btn { margin-top: 12px; padding: 8px 20px; border-radius: 8px; border: none; background: var(--accent); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; font-family: system-ui, sans-serif; }
+  .copy-btn { margin-top: 12px; padding: 8px 20px; min-height: 44px; border-radius: 8px; border: none; background: var(--accent); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; font-family: system-ui, sans-serif; }
   .copy-btn:hover { background: var(--accent-hover); }
   .note { margin-top: 8px; font-size: 13px; color: var(--soft); }
+  @media (max-width: 360px) {
+    .container { padding: 1.25rem 0.75rem; }
+    .player-card { padding: 0.85rem 1rem; }
+    .avatar { width: 36px; height: 36px; }
+  }
 </style>
 </head>
 <body>
@@ -104,7 +110,7 @@
 
   function firstLoadStatus(rolledCount) {
     const progress = rolledCount ? rolledCount + ' of 6 have rolled. ' : '';
-    if (!ME) return progress + 'View only. To roll, open your personal link from Karma Y.';
+    if (!ME) return progress + 'View only. To roll, open your personal link from Karma Y on Viber.';
     if (yearOf(ME) !== null) return progress + 'You rolled ' + yearOf(ME) + '.';
     return progress + 'Hi ' + ME + ', tap Roll when you are ready.';
   }
