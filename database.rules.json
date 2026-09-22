@@ -2,6 +2,12 @@
   "rules": {
     ".read": false,
     ".write": false,
+    "keys": { ".read": false, ".write": false },
+    "proofs": {
+      "$name": {
+        ".write": "!data.exists() && root.child('keys').child($name).exists() && newData.val() == root.child('keys').child($name).val()"
+      }
+    },
     "draw": {
       ".read": true,
       "years": {
@@ -13,7 +19,7 @@
       "names": {
         "$name": {
           ".write": "!data.exists() && $name.matches(/^(PB|Ashok|Karma Tashi|Tapa dai|Karma Y|Karma Wangdi)$/)",
-          ".validate": "newData.isString() && newData.parent().parent().child('years').child(newData.val()).val() == $name"
+          ".validate": "newData.isString() && newData.parent().parent().child('years').child(newData.val()).val() == $name && newData.parent().parent().parent().child('proofs').child($name).val() == root.child('keys').child($name).val()"
         }
       }
     }

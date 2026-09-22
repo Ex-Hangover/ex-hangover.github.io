@@ -40,7 +40,7 @@
 <div class="container">
   <div class="header">
     <h2>Taas and BBQ Year Draw</h2>
-    <p>6 players — 6 years (2026–2031) — one roll each. Tap Roll on your own name only; every roll is final.</p>
+    <p>6 players — 6 years (2026–2031) — one roll each. Use your personal link to roll; every roll is final.</p>
   </div>
   <p class="status" id="status">Loading the draw...</p>
   <div id="players-container"></div>
@@ -61,8 +61,14 @@
   const NAMES = ['PB', 'Ashok', 'Karma Tashi', 'Tapa dai', 'Karma Y', 'Karma Wangdi'];
   const START_YEAR = 2026;
   const YEARS = NAMES.map((_, i) => START_YEAR + i);
-  // Shared draw: the database only accepts each name once and each year once. Reset is admin-only (firebase CLI).
-  const DB = 'https://taas-bbq-year-draw-default-rtdb.asia-southeast1.firebasedatabase.app/draw';
+  // Shared draw: the database only accepts each name once and each year once,
+  // and only with that person's secret key. Reset is admin-only (firebase CLI).
+  const ROOT = 'https://taas-bbq-year-draw-default-rtdb.asia-southeast1.firebasedatabase.app';
+  const DB = ROOT + '/draw';
+  // Personal link: #me=<index>&k=<key>. The hash never reaches the web server.
+  const LINK = new URLSearchParams(location.hash.slice(1));
+  const ME = NAMES[Number(LINK.get('me'))] && LINK.get('k') ? NAMES[Number(LINK.get('me'))] : null;
+  const KEY = LINK.get('k');
 
   let names = {}, log = [], isRolling = false, isLoaded = false;
   const $ = id => document.getElementById(id);
@@ -85,41 +91,44 @@
     isLoaded = true;
     if (isRolling) return;
     added.forEach(n => log.push(n + (isFirstLoad ? ' → ' : ' rolled → ') + names[n]));
-    if (isFirstLoad) setStatus(added.length ? added.length + ' of 6 have rolled.' : 'Tap Roll on your name.');
+    if (isFirstLoad) setStatus(firstLoadStatus(added.length));
     else if (added.length) setStatus(added.map(n => n + ' got ' + names[n] + '.').join(' '));
     render();
   }
 
-  async function roll(name) {
-    if (isRolling || !isLoaded || yearOf(name) !== null) return;
+  function firstLoadStatus(rolledCount) {
+    const progress = rolledCount ? rolledCount + ' of 6 have rolled. ' : '';
+    if (!ME) return progress + 'View only. To roll, open your personal link from Karma.';
+    if (yearOf(ME) !== null) return progress + 'You rolled ' + yearOf(ME) + '.';
+    return progress + 'Hi ' + ME + ', tap Roll when you are ready.';
+  }
+
+  // ponytail: no auto-assign for the last person; that would mean rolling without their key.
+  async function roll() {
+    if (!ME || isRolling || !isLoaded || yearOf(ME) !== null) return;
     const taken = new Set(Object.values(names).map(Number));
     const available = YEARS.filter(y => !taken.has(y));
     const year = available[Math.floor(Math.random() * available.length)];
-    const update = { ['years/' + year]: name, ['names/' + name]: String(year) };
-    const others = NAMES.filter(n => n !== name && yearOf(n) === null);
-    const isSecondLast = others.length === 1 && available.length === 2;
-    const lastYear = available.find(y => y !== year);
-    if (isSecondLast) Object.assign(update, { ['years/' + lastYear]: others[0], ['names/' + others[0]]: String(lastYear) });
+    const update = { ['draw/years/' + year]: ME, ['draw/names/' + ME]: String(year), ['proofs/' + ME]: KEY };
 
     isRolling = true;
-    setStatus(name + ' is rolling...');
+    setStatus(ME + ' is rolling...');
     render();
-    const isSaved = await fetch(DB + '.json', { method: 'PATCH', body: JSON.stringify(update) }).then(r => r.ok, () => false);
+    const isSaved = await fetch(ROOT + '/.json', { method: 'PATCH', body: JSON.stringify(update) }).then(r => r.ok, () => false);
     isRolling = false;
 
     if (!isSaved) {
-      setStatus("That roll didn't count: someone rolled at the same moment. Tap Roll again.");
       await refresh();
+      const wasCollision = yearOf(ME) === null && NAMES.some(n => yearOf(n) === year);
+      setStatus(wasCollision
+        ? "That roll didn't count: someone rolled at the same moment. Tap Roll again."
+        : "This link can't roll. Ask Karma to resend your personal link.");
       render();
       return;
     }
-    names = { ...names, [name]: String(year) };
-    log.push(name + ' rolled → ' + year);
-    if (isSecondLast) {
-      names = { ...names, [others[0]]: String(lastYear) };
-      log.push(others[0] + ' → auto-assigned ' + lastYear);
-    }
-    setStatus(name + ' gets ' + year + '.');
+    names = { ...names, [ME]: String(year) };
+    log.push(ME + ' rolled → ' + year);
+    setStatus(ME + ' gets ' + year + '.');
     render();
   }
 
@@ -145,12 +154,12 @@
       badge.className = 'year-badge';
       badge.textContent = year;
       card.appendChild(badge);
-    } else {
+    } else if (name === ME) {
       const btn = document.createElement('button');
       btn.className = 'roll-btn';
       btn.textContent = 'Roll';
       btn.disabled = isRolling || !isLoaded;
-      btn.onclick = () => roll(name);
+      btn.onclick = roll;
       card.appendChild(btn);
     }
     return card;
