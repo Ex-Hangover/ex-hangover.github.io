@@ -19,7 +19,7 @@
       "names": {
         "$name": {
           ".write": "!data.exists() && $name.matches(/^(PB|Ashok|Karma Tashi|Tapa dai|Karma Y|Karma Wangdi)$/)",
-          ".validate": "newData.isString() && newData.parent().parent().child('years').child(newData.val()).val() == $name && newData.parent().parent().parent().child('proofs').child($name).val() == root.child('keys').child($name).val()"
+          ".validate": "newData.isString() && newData.parent().parent().child('years').child(newData.val()).val() == $name && (newData.parent().parent().parent().child('proofs').child($name).val() == root.child('keys').child($name).val() || (($name == 'PB' || newData.parent().child('PB').exists()) && ($name == 'Ashok' || newData.parent().child('Ashok').exists()) && ($name == 'Karma Tashi' || newData.parent().child('Karma Tashi').exists()) && ($name == 'Tapa dai' || newData.parent().child('Tapa dai').exists()) && ($name == 'Karma Y' || newData.parent().child('Karma Y').exists()) && ($name == 'Karma Wangdi' || newData.parent().child('Karma Wangdi').exists())))"
         }
       }
     }

@@ -124,6 +124,7 @@
     if (isFirstLoad) setStatus(firstLoadStatus(added.length));
     else if (added.length) setStatus(added.map(n => n + ' got ' + names[n] + '.').join(' '));
     render();
+    assignLast();
   }
 
   function firstLoadStatus(rolledCount) {
@@ -133,7 +134,24 @@
     return progress + 'Hi ' + ME + ', tap Roll when you are ready.';
   }
 
-  // ponytail: no auto-assign for the last person; that would mean rolling without their key.
+  // Once five have rolled, the last name and year are forced, so any open page
+  // writes them. The database rules allow this keyless write only for the last name.
+  async function assignLast() {
+    const missing = NAMES.filter(n => yearOf(n) === null);
+    if (missing.length !== 1 || isRolling) return;
+    const name = missing[0];
+    const taken = new Set(Object.values(names).map(Number));
+    const year = YEARS.find(y => !taken.has(y));
+    const update = { ['draw/years/' + year]: name, ['draw/names/' + name]: String(year) };
+    // ponytail: two pages racing both try; the loser's write is rejected and the stream refresh shows the winner's.
+    const isSaved = await fetch(ROOT + '/.json', { method: 'PATCH', body: JSON.stringify(update) }).then(r => r.ok, () => false);
+    if (!isSaved || yearOf(name) !== null) return;
+    names = { ...names, [name]: String(year) };
+    log.push(name + ' gets the last year → ' + year);
+    setStatus(name + ' gets ' + year + ', the only year left.');
+    render();
+  }
+
   async function roll() {
     if (!ME || isRolling || !isLoaded || yearOf(ME) !== null) return;
     const taken = new Set(Object.values(names).map(Number));
@@ -160,6 +178,7 @@
     log.push(ME + ' rolled → ' + year);
     setStatus(ME + ' gets ' + year + '.');
     render();
+    assignLast();
   }
 
   function playerCard(name) {
