@@ -100,7 +100,7 @@
   const ME = NAMES[Number(LINK.get('me'))] && LINK.get('k') ? NAMES[Number(LINK.get('me'))] : null;
   const KEY = LINK.get('k');
 
-  let names = {}, auto = null, log = [], isRolling = false, isLoaded = false;
+  let names = {}, auto = null, order = null, log = [], isRolling = false, isLoaded = false;
   const $ = id => document.getElementById(id);
   const yearOf = name => names[name] ? Number(names[name]) : null;
   const setStatus = text => { $('status').textContent = text; };
@@ -113,11 +113,14 @@
       const draw = (await res.json()) || {};
       next = draw.names || {};
       auto = draw.auto || null;
+      // Roll order was entered by hand (admin CLI); the draw doesn't record when anyone rolled.
+      order = Array.isArray(draw.order) ? draw.order : null;
     } catch {
       setStatus("Can't reach the draw. Check your internet and reload the page.");
       return;
     }
-    const added = NAMES.filter(n => next[n] && !names[n]);
+    const rank = n => order && order.includes(n) ? order.indexOf(n) : NAMES.length + NAMES.indexOf(n);
+    const added = NAMES.filter(n => next[n] && !names[n]).sort((a, b) => rank(a) - rank(b));
     const isFirstLoad = !isLoaded;
     names = next;
     isLoaded = true;
