@@ -100,7 +100,7 @@
   const ME = NAMES[Number(LINK.get('me'))] && LINK.get('k') ? NAMES[Number(LINK.get('me'))] : null;
   const KEY = LINK.get('k');
 
-  let names = {}, log = [], isRolling = false, isLoaded = false;
+  let names = {}, auto = null, log = [], isRolling = false, isLoaded = false;
   const $ = id => document.getElementById(id);
   const yearOf = name => names[name] ? Number(names[name]) : null;
   const setStatus = text => { $('status').textContent = text; };
@@ -108,9 +108,11 @@
   async function refresh() {
     let next;
     try {
-      const res = await fetch(DB + '/names.json', { cache: 'no-store' });
+      const res = await fetch(DB + '.json', { cache: 'no-store' });
       if (!res.ok) throw new Error(res.status);
-      next = (await res.json()) || {};
+      const draw = (await res.json()) || {};
+      next = draw.names || {};
+      auto = draw.auto || null;
     } catch {
       setStatus("Can't reach the draw. Check your internet and reload the page.");
       return;
@@ -120,7 +122,7 @@
     names = next;
     isLoaded = true;
     if (isRolling) return;
-    added.forEach(n => log.push(n + (isFirstLoad ? ' → ' : ' rolled → ') + names[n]));
+    added.forEach(n => log.push(n === auto ? n + ' (last player, auto-assigned) → ' + names[n] : n + (isFirstLoad ? ' → ' : ' rolled → ') + names[n]));
     if (isFirstLoad) setStatus(firstLoadStatus(added.length));
     else if (added.length) setStatus(added.map(n => n + ' got ' + names[n] + '.').join(' '));
     render();
@@ -142,12 +144,13 @@
     const name = missing[0];
     const taken = new Set(Object.values(names).map(Number));
     const year = YEARS.find(y => !taken.has(y));
-    const update = { ['draw/years/' + year]: name, ['draw/names/' + name]: String(year) };
+    const update = { ['draw/years/' + year]: name, ['draw/names/' + name]: String(year), 'draw/auto': name };
     // ponytail: two pages racing both try; the loser's write is rejected and the stream refresh shows the winner's.
     const isSaved = await fetch(ROOT + '/.json', { method: 'PATCH', body: JSON.stringify(update) }).then(r => r.ok, () => false);
     if (!isSaved || yearOf(name) !== null) return;
     names = { ...names, [name]: String(year) };
-    log.push(name + ' gets the last year → ' + year);
+    auto = name;
+    log.push(name + ' (last player, auto-assigned) → ' + year);
     setStatus(name + ' gets ' + year + ', the only year left.');
     render();
   }
@@ -195,7 +198,7 @@
     nm.textContent = name;
     const res = document.createElement('div');
     res.className = 'player-result' + (year ? ' revealed' : '');
-    res.textContent = year ? 'Rolled!' : 'Waiting to roll...';
+    res.textContent = !year ? 'Waiting to roll...' : name === auto ? 'Last player - auto-assigned' : 'Rolled!';
     info.append(nm, res);
     card.append(av, info);
     if (year) {

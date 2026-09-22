@@ -10,6 +10,10 @@
     },
     "draw": {
       ".read": true,
+      "auto": {
+        ".write": "!data.exists()",
+        ".validate": "newData.isString() && newData.parent().child('names').child(newData.val()).exists() && !root.child('proofs').child(newData.val()).exists()"
+      },
       "years": {
         "$year": {
           ".write": "!data.exists() && $year.matches(/^20(2[6-9]|3[01])$/)",
